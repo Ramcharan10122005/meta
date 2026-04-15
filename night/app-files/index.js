@@ -181,8 +181,18 @@
   function sanitize(s) {
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;');
   }
-
+  var audio = new Audio();
   function switchScene(scene) {
+    // stop previous audio
+    audio.pause();
+    audio.currentTime = 0;
+
+    // 🎧 AUTO AUDIO LOAD (based on scene id)
+    var sceneId = scene.data.name;
+    audio.src = "audio/" + sceneId + ".mp3";
+
+    // play audio
+    audio.play().catch(() => { });
     stopAutorotate();
     scene.view.setParameters(scene.data.initialViewParameters);
     scene.scene.switchTo();
