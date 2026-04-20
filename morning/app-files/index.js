@@ -63,7 +63,8 @@
   // Viewer options.
   var viewerOpts = {
     controls: {
-      mouseViewMode: data.settings.mouseViewMode
+      mouseViewMode: 'drag',   // for desktop
+      touchViewMode: 'qtvr'    // 🔥 for mobile + VR
     }
   };
 
@@ -182,6 +183,7 @@
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;');
   }
   var audio = new Audio();
+  window.audio = audio;
   function switchScene(scene) {
     // stop previous audio
     audio.pause();

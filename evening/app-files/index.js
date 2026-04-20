@@ -62,10 +62,11 @@
 
   // Viewer options.
   var viewerOpts = {
-    controls: {
-      mouseViewMode: data.settings.mouseViewMode
-    }
-  };
+  controls: {
+    mouseViewMode: 'drag',   // for desktop
+    touchViewMode: 'qtvr'    // 🔥 for mobile + VR
+  }
+};
 
   // Initialize viewer.
   var viewer = new Marzipano.Viewer(panoElement, viewerOpts);
@@ -182,6 +183,7 @@
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;');
   }
   var audio = new Audio();
+  window.audio = audio;
   function switchScene(scene) {
     // stop previous audio
     audio.pause();

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +8,16 @@
     <!-- Import Google Font for a modern aesthetic -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #121212; /* Dark theme background */
+            background-color: #121212;
+            /* Dark theme background */
         }
 
         #tour-iframe {
@@ -24,7 +27,8 @@
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 1; /* Stay behind the control panel */
+            z-index: 1;
+            /* Stay behind the control panel */
         }
 
         /* Floating control panel with glassmorphism */
@@ -76,7 +80,8 @@
             transition: all 0.3s ease;
         }
 
-        select:focus, select:hover {
+        select:focus,
+        select:hover {
             border-color: rgba(255, 255, 255, 0.3);
             background: rgba(255, 255, 255, 0.1);
         }
@@ -122,10 +127,12 @@
         }
     </style>
 </head>
+
 <body>
 
     <div id="control-panel">
         <h2 class="panel-title">Campus Tour</h2>
+
         <div class="select-wrapper">
             <select id="tour-select">
                 <option value="morning/app-files/index.html">Morning</option>
@@ -134,33 +141,114 @@
             </select>
             <div class="select-arrow">▼</div>
         </div>
+
         <button id="load-btn">Load Tour</button>
+
+        <!-- 🔊 AUDIO CONTROL -->
+        <button id="audio-btn">🔊 Mute Audio</button>
+
+        <!-- 🥽 VR MODE -->
+        <button id="vr-btn">🥽 VR Mode</button>
     </div>
 
     <!-- Iframe taking full screen behind the control panel -->
     <iframe id="tour-iframe" src="morning/app-files/index.html" allowfullscreen></iframe>
-
+    <div style="
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999;
+    pointer-events: none;">
+    </div>
     <script>
+        let isMuted = false;
+
+        // 🎯 LOAD TOUR (your logic + improved)
         document.getElementById('load-btn').addEventListener('click', () => {
             const selectElement = document.getElementById('tour-select');
             const iframeElement = document.getElementById('tour-iframe');
-            
+
             const newSrc = selectElement.value;
-            
-            // Add a subtle transition effect
+
+            // fade out
             iframeElement.style.transition = 'opacity 0.3s ease-out';
             iframeElement.style.opacity = 0;
-            
+
             setTimeout(() => {
                 iframeElement.src = newSrc;
-                
-                // Once the new iframe content loads, fade it back in
+
                 iframeElement.onload = () => {
                     iframeElement.style.transition = 'opacity 0.5s ease-in';
                     iframeElement.style.opacity = 1;
+
+                    // 🔥 reset audio button when new tour loads
+                    isMuted = false;
+                    document.getElementById("audio-btn").innerText = "🔊 Mute Audio";
                 };
             }, 300);
         });
+
+
+        // 🔊 AUDIO CONTROL (controls audio inside iframe)
+        document.getElementById("audio-btn").addEventListener("click", function () {
+            const iframe = document.getElementById("tour-iframe");
+
+            try {
+                const audio = iframe.contentWindow.audio;
+
+                if (audio) {
+                    if (isMuted) {
+                        audio.muted = false;
+                        this.innerText = "🔊 Mute Audio";
+                    } else {
+                        audio.muted = true;
+                        this.innerText = "🔇 Unmute Audio";
+                    }
+                    isMuted = !isMuted;
+                }
+            } catch (e) {
+                console.log("Audio not ready yet");
+            }
+        });
+
+
+        // 🥽 VR MODE (fullscreen)
+        document.getElementById("vr-btn").addEventListener("click", function () {
+            const iframe = document.getElementById("tour-iframe");
+
+            // 🔥 Enter fullscreen (cross-browser)
+            if (iframe.requestFullscreen) {
+                iframe.requestFullscreen();
+            } else if (iframe.webkitRequestFullscreen) {
+                iframe.webkitRequestFullscreen();
+            } else if (iframe.msRequestFullscreen) {
+                iframe.msRequestFullscreen();
+            }
+
+            // 🔥 Lock orientation for better VR (mobile / Meta Quest)
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock("landscape").catch(() => { });
+            }
+
+            // 🔥 Small UX improvement (hide control panel in VR)
+            const panel = document.getElementById("control-panel");
+            if (panel) {
+                panel.style.display = "none";
+            }
+
+            // 🔥 Show panel again when exiting fullscreen
+            document.addEventListener("fullscreenchange", function () {
+                if (!document.fullscreenElement) {
+                    if (panel) panel.style.display = "flex";
+                }
+            });
+        });
     </script>
 </body>
+
 </html>
