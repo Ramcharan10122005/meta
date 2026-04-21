@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>VR Tour (Final)</title>
+    <title>VR Final Perfect</title>
 
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 </head>
@@ -11,20 +11,15 @@
 
     <a-scene vr-mode-ui="enabled: true">
 
-        <!-- CAMERA -->
         <a-entity id="cam" camera look-controls position="0 1.6 0">
 
-            <!-- CURSOR -->
             <a-cursor fuse="true" fuse-timeout="1000" raycaster="objects: .clickable"
                 geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02" material="color: white">
             </a-cursor>
 
         </a-entity>
 
-        <!-- SKY -->
         <a-sky id="sky"></a-sky>
-
-        <!-- HOTSPOTS -->
         <a-entity id="hotspots"></a-entity>
 
     </a-scene>
@@ -33,6 +28,9 @@
 
         let scenesMap = {};
         let currentAudio = null;
+
+        // 🔥 GLOBAL OFFSET (FINAL FIX)
+        const GLOBAL_OFFSET = -Math.PI / 2;
 
         // LOAD DATA
         async function loadData() {
@@ -54,21 +52,19 @@
             let scene = scenesMap[id];
             if (!scene) return;
 
-            console.log("=== SCENE ===", scene.name);
+            let sky = document.getElementById("sky");
 
-            // SET SKY
-            document.getElementById("sky")
-                .setAttribute("src", "./vr-images/" + scene.name.toLowerCase() + ".jpg");
+            sky.setAttribute("src", "./vr-images/" + scene.name.toLowerCase() + ".jpg");
 
-            // SET CAMERA (FIXED)
             let cam = document.getElementById("cam");
 
             let yaw = scene.initialViewParameters?.yaw || 0;
             let pitch = scene.initialViewParameters?.pitch || 0;
 
+            // 🔥 APPLY GLOBAL OFFSET
             cam.setAttribute("rotation", {
                 x: THREE.MathUtils.radToDeg(pitch),
-                y: THREE.MathUtils.radToDeg(yaw),   // ✅ FIXED (no negative)
+                y: THREE.MathUtils.radToDeg(yaw + GLOBAL_OFFSET),
                 z: 0
             });
 
@@ -81,36 +77,33 @@
             currentAudio = new Audio("./audio/" + scene.name.toLowerCase() + ".mp3");
             currentAudio.play().catch(() => { });
 
-            // CLEAR HOTSPOTS
             let container = document.getElementById("hotspots");
             container.innerHTML = "";
 
             let hotspots = scene.linkHotspots || [];
 
-            let baseYaw = scene.initialViewParameters?.yaw || 0;
+            let baseYaw = yaw;
 
             hotspots.forEach(h => {
 
                 if (!scenesMap[h.target]) return;
 
-                // 🔥 CORE FIX
-                let hRotX = THREE.MathUtils.radToDeg(-h.pitch);
-                let hRotY = THREE.MathUtils.radToDeg(-(h.yaw - baseYaw));
+                // 🔥 FINAL CORRECT ROTATION
+                let finalYaw = h.yaw - baseYaw + GLOBAL_OFFSET;
 
-                console.log("Hotspot:", h.target);
-                console.log("Corrected Yaw:", h.yaw - baseYaw);
+                let hRotX = THREE.MathUtils.radToDeg(-h.pitch);
+                let hRotY = THREE.MathUtils.radToDeg(-finalYaw);
 
                 let el = document.createElement("a-entity");
 
                 el.setAttribute("geometry", "primitive: circle; radius: 0.45");
-                el.setAttribute("material", "color: #00ffff; shader: flat");
+                el.setAttribute("material", "color: #00ffff");
 
                 el.setAttribute("rotation", `${hRotX} ${hRotY} 0`);
                 el.setAttribute("position", "0 0 -10");
 
                 el.setAttribute("class", "clickable");
 
-                // Animation
                 el.setAttribute("animation__scale", {
                     property: "scale",
                     dir: "alternate",
@@ -119,7 +112,6 @@
                     to: "1.3 1.3 1.3"
                 });
 
-                // Click
                 el.addEventListener("click", () => loadScene(h.target));
 
                 container.appendChild(el);
