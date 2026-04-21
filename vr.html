@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>VR Debug Mode</title>
+    <title>VR Tour (Final)</title>
 
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 </head>
@@ -54,27 +54,32 @@
             let scene = scenesMap[id];
             if (!scene) return;
 
-            console.log("========== SCENE LOAD ==========");
-            console.log("Scene Name:", scene.name);
-            console.log("Initial Yaw:", scene.initialViewParameters?.yaw);
-            console.log("Initial Pitch:", scene.initialViewParameters?.pitch);
+            console.log("=== SCENE ===", scene.name);
 
             // SET SKY
             document.getElementById("sky")
                 .setAttribute("src", "./vr-images/" + scene.name.toLowerCase() + ".jpg");
 
-            // SET CAMERA
+            // SET CAMERA (FIXED)
             let cam = document.getElementById("cam");
 
             let yaw = scene.initialViewParameters?.yaw || 0;
             let pitch = scene.initialViewParameters?.pitch || 0;
 
-            let rotX = THREE.MathUtils.radToDeg(pitch);
-            let rotY = THREE.MathUtils.radToDeg(-yaw);
+            cam.setAttribute("rotation", {
+                x: THREE.MathUtils.radToDeg(pitch),
+                y: THREE.MathUtils.radToDeg(yaw),   // ✅ FIXED (no negative)
+                z: 0
+            });
 
-            cam.setAttribute("rotation", `${rotX} ${rotY} 0`);
+            // AUDIO
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
 
-            console.log("Camera Rotation:", rotX, rotY);
+            currentAudio = new Audio("./audio/" + scene.name.toLowerCase() + ".mp3");
+            currentAudio.play().catch(() => { });
 
             // CLEAR HOTSPOTS
             let container = document.getElementById("hotspots");
@@ -82,37 +87,40 @@
 
             let hotspots = scene.linkHotspots || [];
 
-            hotspots.forEach((h, index) => {
+            let baseYaw = scene.initialViewParameters?.yaw || 0;
 
-                console.log("------ HOTSPOT ------");
-                console.log("Index:", index);
-                console.log("Target:", h.target);
-                console.log("Yaw:", h.yaw);
-                console.log("Pitch:", h.pitch);
+            hotspots.forEach(h => {
+
+                if (!scenesMap[h.target]) return;
+
+                // 🔥 CORE FIX
+                let hRotX = THREE.MathUtils.radToDeg(-h.pitch);
+                let hRotY = THREE.MathUtils.radToDeg(-(h.yaw - baseYaw));
+
+                console.log("Hotspot:", h.target);
+                console.log("Corrected Yaw:", h.yaw - baseYaw);
 
                 let el = document.createElement("a-entity");
 
-                // 🔴 DEBUG: big red sphere (easy to see)
-                el.setAttribute("geometry", "primitive: sphere; radius: 0.4");
-                el.setAttribute("material", "color: red");
-
-                // 🔥 rotation-based placement
-                let hRotX = THREE.MathUtils.radToDeg(-h.pitch);
-                let hRotY = THREE.MathUtils.radToDeg(-h.yaw);
-
-                console.log("Applied Rotation:", hRotX, hRotY);
+                el.setAttribute("geometry", "primitive: circle; radius: 0.45");
+                el.setAttribute("material", "color: #00ffff; shader: flat");
 
                 el.setAttribute("rotation", `${hRotX} ${hRotY} 0`);
-
-                // push forward
                 el.setAttribute("position", "0 0 -10");
 
                 el.setAttribute("class", "clickable");
 
-                el.addEventListener("click", () => {
-                    console.log("CLICKED:", h.target);
-                    loadScene(h.target);
+                // Animation
+                el.setAttribute("animation__scale", {
+                    property: "scale",
+                    dir: "alternate",
+                    dur: 800,
+                    loop: true,
+                    to: "1.3 1.3 1.3"
                 });
+
+                // Click
+                el.addEventListener("click", () => loadScene(h.target));
 
                 container.appendChild(el);
             });
