@@ -2,19 +2,24 @@
 <html>
 
 <head>
-    <title>VR Perfect Alignment</title>
+    <title>VR Final Correct</title>
+
+    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 </head>
 
 <body>
 
-    <a-scene>
+    <a-scene vr-mode-ui="enabled: true">
 
         <!-- CAMERA -->
         <a-entity id="cam" camera look-controls position="0 1.6 0">
+
+            <!-- CURSOR -->
             <a-cursor fuse="true" fuse-timeout="1000" raycaster="objects: .clickable"
                 geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02" material="color: white">
             </a-cursor>
+
         </a-entity>
 
         <!-- SKY -->
@@ -28,7 +33,9 @@
     <script>
 
         let scenesMap = {};
+        let currentAudio = null;
 
+        // LOAD DATA
         async function loadData() {
 
             let text = await fetch("./evening/app-files/data.js").then(r => r.text());
@@ -42,26 +49,38 @@
             loadScene(json.scenes[0].id);
         }
 
+        // LOAD SCENE
         function loadScene(id) {
 
             let scene = scenesMap[id];
             if (!scene) return;
 
             let sky = document.getElementById("sky");
+
             sky.setAttribute("src", "./vr-images/" + scene.name.toLowerCase() + ".jpg");
 
             let cam = document.getElementById("cam");
 
+            // ✅ INITIAL VIEW (VERY IMPORTANT)
             let baseYaw = scene.initialViewParameters?.yaw || 0;
             let basePitch = scene.initialViewParameters?.pitch || 0;
 
-            // ✅ SET CAMERA EXACTLY LIKE MARZIPANO
             cam.setAttribute("rotation", {
                 x: THREE.MathUtils.radToDeg(basePitch),
                 y: THREE.MathUtils.radToDeg(baseYaw),
                 z: 0
             });
 
+            // 🔊 AUDIO (optional)
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+
+            currentAudio = new Audio("./audio/" + scene.name.toLowerCase() + ".mp3");
+            currentAudio.play().catch(() => { });
+
+            // CLEAR HOTSPOTS
             let container = document.getElementById("hotspots");
             container.innerHTML = "";
 
@@ -69,25 +88,44 @@
 
             hotspots.forEach(h => {
 
+                if (!scenesMap[h.target]) return;
+
                 let el = document.createElement("a-entity");
 
-                el.setAttribute("geometry", "primitive: circle; radius: 0.4");
+                el.setAttribute("geometry", "primitive: circle; radius: 0.35");
                 el.setAttribute("material", "color: cyan");
                 el.setAttribute("class", "clickable");
 
-                // 🔥 CORRECT METHOD (SPHERICAL ROTATION)
-                let yaw = THREE.MathUtils.radToDeg(h.yaw);
-                let pitch = THREE.MathUtils.radToDeg(h.pitch);
+                // 🔥 FINAL CORRECT CALCULATION
+                let correctedYaw = h.yaw - baseYaw;
+                let correctedPitch = h.pitch - basePitch;
 
-                el.setAttribute("rotation", `${-pitch} ${yaw} 0`);
+                let yawDeg = THREE.MathUtils.radToDeg(correctedYaw);
+                let pitchDeg = THREE.MathUtils.radToDeg(correctedPitch);
+
+                // 🔥 APPLY ROTATION (THIS IS KEY)
+                el.setAttribute("rotation", `${-pitchDeg} ${yawDeg} 0`);
+
+                // move forward
                 el.setAttribute("position", "0 0 -8");
 
+                // animation
+                el.setAttribute("animation__scale", {
+                    property: "scale",
+                    dir: "alternate",
+                    dur: 800,
+                    loop: true,
+                    to: "1.2 1.2 1.2"
+                });
+
+                // click navigation
                 el.addEventListener("click", () => loadScene(h.target));
 
                 container.appendChild(el);
             });
         }
 
+        // START
         loadData();
 
     </script>
