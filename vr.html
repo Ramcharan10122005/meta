@@ -4,10 +4,10 @@
 <head>
     <title>Afternoon VR Tour</title>
 
-    <!-- A-Frame (WebXR) -->
+    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
-    <!-- Look-at component -->
+    <!-- Look-at -->
     <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
 </head>
 
@@ -15,12 +15,11 @@
 
     <a-scene vr-mode-ui="enabled: true">
 
-        <!-- CAMERA + VR CURSOR -->
+        <!-- CAMERA + CURSOR -->
         <a-entity camera look-controls position="0 1.6 0">
 
-            <!-- Gaze Cursor -->
-            <a-cursor fuse="true" fuse-timeout="1000" material="color: white; shader: flat"
-                geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02">
+            <a-cursor fuse="true" fuse-timeout="1000" raycaster="objects: .clickable"
+                material="color: white; shader: flat" geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02">
             </a-cursor>
 
         </a-entity>
@@ -54,9 +53,14 @@
             loadScene(json.scenes[0].id);
         }
 
-        // 🎯 Convert yaw/pitch → 3D (IMPROVED)
+        // 🎯 CORRECTED MARZIPANO → AFRAME CONVERSION
         function toPosition(yaw, pitch) {
-            let r = 10;   // 🔥 increased for correct placement
+
+            let r = 10;
+
+            // 🔥 critical fix
+            yaw = -yaw;
+
             return {
                 x: r * Math.sin(yaw) * Math.cos(pitch),
                 y: r * Math.sin(pitch),
@@ -81,10 +85,8 @@
 
             setTimeout(() => {
 
-                // Load image
                 sky.setAttribute("src", "./vr-images/" + scene.name.toLowerCase() + ".jpg");
 
-                // Fade in
                 sky.setAttribute("animation__fadein", {
                     property: "material.opacity",
                     to: 1,
@@ -102,11 +104,10 @@
             currentAudio = new Audio("./audio/" + scene.name.toLowerCase() + ".mp3");
             currentAudio.play().catch(() => { });
 
-            // Clear hotspots
+            // CLEAR HOTSPOTS
             let container = document.getElementById("hotspots");
             container.innerHTML = "";
 
-            // Safe hotspot fetch
             let hotspots = scene.linkHotspots || scene.hotspots || [];
 
             hotspots.forEach(h => {
@@ -117,15 +118,15 @@
 
                 let el = document.createElement("a-entity");
 
-                // 🔵 Bigger clickable hotspot
-                el.setAttribute("geometry", "primitive: circle; radius: 0.5");
+                // 🔵 HOTSPOT STYLE
+                el.setAttribute("geometry", "primitive: circle; radius: 0.45");
                 el.setAttribute("material", "color: #00ffff; shader: flat");
 
                 el.setAttribute("position", `${pos.x} ${pos.y} ${pos.z}`);
                 el.setAttribute("look-at", "[camera]");
                 el.setAttribute("class", "clickable");
 
-                // Pulse animation
+                // Animation
                 el.setAttribute("animation__scale", {
                     property: "scale",
                     dir: "alternate",
@@ -134,7 +135,6 @@
                     to: "1.3 1.3 1.3"
                 });
 
-                // Floating animation
                 el.setAttribute("animation__float", {
                     property: "position",
                     dir: "alternate",
@@ -143,14 +143,14 @@
                     to: `${pos.x} ${pos.y + 0.3} ${pos.z}`
                 });
 
-                // CLICK (VR + Desktop)
+                // CLICK
                 el.addEventListener("click", () => loadScene(h.target));
 
                 container.appendChild(el);
             });
         }
 
-        // 🚀 START
+        // START
         loadData();
 
     </script>
