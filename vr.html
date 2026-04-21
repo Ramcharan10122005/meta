@@ -2,8 +2,9 @@
 <html>
 
 <head>
-    <title>VR Final Perfect</title>
+    <title>VR Final Fixed</title>
 
+    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 </head>
 
@@ -11,15 +12,20 @@
 
     <a-scene vr-mode-ui="enabled: true">
 
+        <!-- CAMERA -->
         <a-entity id="cam" camera look-controls position="0 1.6 0">
 
+            <!-- CURSOR -->
             <a-cursor fuse="true" fuse-timeout="1000" raycaster="objects: .clickable"
                 geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02" material="color: white">
             </a-cursor>
 
         </a-entity>
 
+        <!-- SKY -->
         <a-sky id="sky"></a-sky>
+
+        <!-- HOTSPOTS -->
         <a-entity id="hotspots"></a-entity>
 
     </a-scene>
@@ -28,9 +34,6 @@
 
         let scenesMap = {};
         let currentAudio = null;
-
-        // 🔥 GLOBAL OFFSET (FINAL FIX)
-        const GLOBAL_OFFSET = -Math.PI / 2;
 
         // LOAD DATA
         async function loadData() {
@@ -58,13 +61,13 @@
 
             let cam = document.getElementById("cam");
 
-            let yaw = scene.initialViewParameters?.yaw || 0;
-            let pitch = scene.initialViewParameters?.pitch || 0;
+            let baseYaw = scene.initialViewParameters?.yaw || 0;
+            let basePitch = scene.initialViewParameters?.pitch || 0;
 
-            // 🔥 APPLY GLOBAL OFFSET
+            // ✅ CAMERA ALIGNMENT
             cam.setAttribute("rotation", {
-                x: THREE.MathUtils.radToDeg(pitch),
-                y: THREE.MathUtils.radToDeg(yaw + GLOBAL_OFFSET),
+                x: THREE.MathUtils.radToDeg(basePitch),
+                y: THREE.MathUtils.radToDeg(baseYaw),
                 z: 0
             });
 
@@ -77,21 +80,21 @@
             currentAudio = new Audio("./audio/" + scene.name.toLowerCase() + ".mp3");
             currentAudio.play().catch(() => { });
 
+            // CLEAR HOTSPOTS
             let container = document.getElementById("hotspots");
             container.innerHTML = "";
 
             let hotspots = scene.linkHotspots || [];
 
-            let baseYaw = yaw;
-
             hotspots.forEach(h => {
 
                 if (!scenesMap[h.target]) return;
 
-                // 🔥 FINAL CORRECT ROTATION
-                let finalYaw = h.yaw - baseYaw + GLOBAL_OFFSET;
+                // 🔥 FINAL CORRECT CALCULATION
+                let finalYaw = h.yaw - baseYaw;
+                let finalPitch = h.pitch - basePitch;
 
-                let hRotX = THREE.MathUtils.radToDeg(-h.pitch);
+                let hRotX = THREE.MathUtils.radToDeg(-finalPitch);
                 let hRotY = THREE.MathUtils.radToDeg(-finalYaw);
 
                 let el = document.createElement("a-entity");
@@ -99,11 +102,13 @@
                 el.setAttribute("geometry", "primitive: circle; radius: 0.45");
                 el.setAttribute("material", "color: #00ffff");
 
+                // 🔥 KEY: rotation + forward placement
                 el.setAttribute("rotation", `${hRotX} ${hRotY} 0`);
                 el.setAttribute("position", "0 0 -10");
 
                 el.setAttribute("class", "clickable");
 
+                // Animation
                 el.setAttribute("animation__scale", {
                     property: "scale",
                     dir: "alternate",
