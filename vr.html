@@ -3,17 +3,22 @@
 
 <head>
     <title>Afternoon VR Tour</title>
+
+    <!-- A-Frame (WebXR) -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+    <!-- Make arrows face camera -->
+    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
 </head>
 
 <body>
 
     <a-scene vr-mode-ui="enabled: true">
 
-        <!-- CAMERA -->
+        <!-- CAMERA (Head tracking) -->
         <a-entity camera look-controls position="0 1.6 0"></a-entity>
 
-        <!-- SKY (with fade animation) -->
+        <!-- SKY -->
         <a-sky id="sky" material="opacity: 1"></a-sky>
 
         <!-- HOTSPOTS -->
@@ -26,10 +31,10 @@
         let scenesMap = {};
         let currentAudio = null;
 
-        // 🔥 LOAD DATA
+        // 🚀 LOAD DATA (AFTERNOON)
         async function loadData() {
 
-            let text = await fetch("evening/app-files/data.js").then(r => r.text());
+            let text = await fetch("./evening/app-files/data.js").then(r => r.text());
 
             let json = JSON.parse(
                 text.replace("var APP_DATA =", "").trim().slice(0, -1)
@@ -39,10 +44,11 @@
                 scenesMap[s.id] = s;
             });
 
+            // Start from first scene
             loadScene(json.scenes[0].id);
         }
 
-        // 🎯 CONVERT yaw/pitch → 3D
+        // 🎯 Convert yaw/pitch → 3D position
         function toPosition(yaw, pitch) {
             let r = 4;
             return {
@@ -60,7 +66,7 @@
 
             let sky = document.getElementById("sky");
 
-            // 🔥 SMOOTH FADE OUT
+            // 🔥 Fade out
             sky.setAttribute("animation__fadeout", {
                 property: "material.opacity",
                 to: 0,
@@ -69,10 +75,10 @@
 
             setTimeout(() => {
 
-                // 🔥 CHANGE IMAGE
-                sky.setAttribute("src", "vr-images/" + id + ".jpg");
+                // ✅ USE scene.name (YOUR FIX)
+                sky.setAttribute("src", "./vr-images/" + scene.name + ".jpg");
 
-                // 🔥 FADE IN
+                // 🔥 Fade in
                 sky.setAttribute("animation__fadein", {
                     property: "material.opacity",
                     to: 1,
@@ -87,7 +93,7 @@
                 currentAudio.currentTime = 0;
             }
 
-            currentAudio = new Audio("audio/" + id + ".mp3");
+            currentAudio = new Audio("./audio/" + scene.name + ".mp3");
             currentAudio.play().catch(() => { });
 
             // 🔥 CLEAR HOTSPOTS
@@ -97,20 +103,21 @@
             // 🔥 ADD ARROW HOTSPOTS
             scene.linkHotspots.forEach(h => {
 
+                // Skip removed scenes
                 if (!scenesMap[h.target]) return;
 
                 let pos = toPosition(h.yaw, h.pitch);
 
                 let el = document.createElement("a-image");
 
-                el.setAttribute("src", "arrow.png"); // 👈 add this file
+                el.setAttribute("src", "./arrow.png");
                 el.setAttribute("position", `${pos.x} ${pos.y} ${pos.z}`);
                 el.setAttribute("scale", "0.6 0.6 0.6");
 
-                // 🔥 FACE CAMERA ALWAYS
+                // Always face camera
                 el.setAttribute("look-at", "[camera]");
 
-                // 🔥 FLOAT ANIMATION
+                // Floating animation
                 el.setAttribute("animation", {
                     property: "position",
                     dir: "alternate",
@@ -119,6 +126,7 @@
                     to: `${pos.x} ${pos.y + 0.2} ${pos.z}`
                 });
 
+                // Click to change scene
                 el.addEventListener("click", () => loadScene(h.target));
 
                 container.appendChild(el);
@@ -126,6 +134,7 @@
 
         }
 
+        // 🚀 START
         loadData();
 
     </script>
