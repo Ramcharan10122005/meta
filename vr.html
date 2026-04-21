@@ -2,10 +2,9 @@
 <html>
 
 <head>
-    <title>Afternoon VR Tour</title>
+    <title>VR Debug Mode</title>
 
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
 </head>
 
 <body>
@@ -17,7 +16,7 @@
 
             <!-- CURSOR -->
             <a-cursor fuse="true" fuse-timeout="1000" raycaster="objects: .clickable"
-                geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02" material="color: white; shader: flat">
+                geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.02" material="color: white">
             </a-cursor>
 
         </a-entity>
@@ -55,30 +54,27 @@
             let scene = scenesMap[id];
             if (!scene) return;
 
-            // SET IMAGE
+            console.log("========== SCENE LOAD ==========");
+            console.log("Scene Name:", scene.name);
+            console.log("Initial Yaw:", scene.initialViewParameters?.yaw);
+            console.log("Initial Pitch:", scene.initialViewParameters?.pitch);
+
+            // SET SKY
             document.getElementById("sky")
                 .setAttribute("src", "./vr-images/" + scene.name.toLowerCase() + ".jpg");
 
-            // SET CAMERA VIEW (MATCH MARZIPANO)
+            // SET CAMERA
             let cam = document.getElementById("cam");
 
             let yaw = scene.initialViewParameters?.yaw || 0;
             let pitch = scene.initialViewParameters?.pitch || 0;
 
-            cam.setAttribute("rotation", {
-                x: THREE.MathUtils.radToDeg(pitch),
-                y: THREE.MathUtils.radToDeg(-yaw), // 🔥 important
-                z: 0
-            });
+            let rotX = THREE.MathUtils.radToDeg(pitch);
+            let rotY = THREE.MathUtils.radToDeg(-yaw);
 
-            // AUDIO
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-            }
+            cam.setAttribute("rotation", `${rotX} ${rotY} 0`);
 
-            currentAudio = new Audio("./audio/" + scene.name.toLowerCase() + ".mp3");
-            currentAudio.play().catch(() => { });
+            console.log("Camera Rotation:", rotX, rotY);
 
             // CLEAR HOTSPOTS
             let container = document.getElementById("hotspots");
@@ -86,40 +82,37 @@
 
             let hotspots = scene.linkHotspots || [];
 
-            hotspots.forEach(h => {
+            hotspots.forEach((h, index) => {
 
-                if (!scenesMap[h.target]) return;
+                console.log("------ HOTSPOT ------");
+                console.log("Index:", index);
+                console.log("Target:", h.target);
+                console.log("Yaw:", h.yaw);
+                console.log("Pitch:", h.pitch);
 
                 let el = document.createElement("a-entity");
 
-                // 🔵 VISUAL
-                el.setAttribute("geometry", "primitive: circle; radius: 0.4");
-                el.setAttribute("material", "color: #00ffff; shader: flat");
+                // 🔴 DEBUG: big red sphere (easy to see)
+                el.setAttribute("geometry", "primitive: sphere; radius: 0.4");
+                el.setAttribute("material", "color: red");
 
-                // 🔥 KEY IDEA: use rotation instead of position
-                el.setAttribute("rotation", {
-                    x: THREE.MathUtils.radToDeg(-h.pitch),
-                    y: THREE.MathUtils.radToDeg(-h.yaw),
-                    z: 0
-                });
+                // 🔥 rotation-based placement
+                let hRotX = THREE.MathUtils.radToDeg(-h.pitch);
+                let hRotY = THREE.MathUtils.radToDeg(-h.yaw);
 
-                // push forward from center
+                console.log("Applied Rotation:", hRotX, hRotY);
+
+                el.setAttribute("rotation", `${hRotX} ${hRotY} 0`);
+
+                // push forward
                 el.setAttribute("position", "0 0 -10");
 
-                el.setAttribute("look-at", "#cam");
                 el.setAttribute("class", "clickable");
 
-                // animation
-                el.setAttribute("animation__scale", {
-                    property: "scale",
-                    dir: "alternate",
-                    dur: 800,
-                    loop: true,
-                    to: "1.3 1.3 1.3"
+                el.addEventListener("click", () => {
+                    console.log("CLICKED:", h.target);
+                    loadScene(h.target);
                 });
-
-                // click
-                el.addEventListener("click", () => loadScene(h.target));
 
                 container.appendChild(el);
             });
