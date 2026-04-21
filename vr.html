@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Afternoon VR Tour</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+</head>
+
+<body>
+
+    <a-scene vr-mode-ui="enabled: true">
+
+        <!-- CAMERA (HEAD TRACKING) -->
+        <a-entity camera look-controls position="0 1.6 0"></a-entity>
+
+        <!-- SKY -->
+        <a-sky id="sky"></a-sky>
+
+        <!-- HOTSPOTS -->
+        <a-entity id="hotspots"></a-entity>
+
+    </a-scene>
+
+    <script>
+
+        // 🔥 LOAD ONLY AFTERNOON DATA
+        let scenesMap = {};
+
+        async function loadData() {
+
+            let text = await fetch("evening/app-files/data.js").then(r => r.text());
+
+            let json = JSON.parse(
+                text.replace("var APP_DATA =", "").trim().slice(0, -1)
+            );
+
+            json.scenes.forEach(s => {
+                scenesMap[s.id] = s;
+            });
+
+            // start from first scene
+            loadScene(json.scenes[0].id);
+        }
+
+        // 🎯 yaw/pitch → 3D
+        function toPosition(yaw, pitch) {
+            let r = 4;
+            return {
+                x: r * Math.sin(yaw) * Math.cos(pitch),
+                y: r * Math.sin(pitch),
+                z: -r * Math.cos(yaw) * Math.cos(pitch)
+            };
+        }
+
+        // 🎯 LOAD SCENE
+        function loadScene(id) {
+
+            let scene = scenesMap[id];
+            if (!scene) return;
+
+            // 🔥 CHANGE IMAGE (same name as scene id)
+            document.getElementById("sky")
+                .setAttribute("src", "vr-images/" + id + ".jpg");
+
+            let container = document.getElementById("hotspots");
+            container.innerHTML = "";
+
+            // 🔥 ADD HOTSPOTS
+            scene.linkHotspots.forEach(h => {
+
+                // ❗ skip removed scenes
+                if (!scenesMap[h.target]) return;
+
+                let pos = toPosition(h.yaw, h.pitch);
+
+                let el = document.createElement("a-sphere");
+
+                el.setAttribute("position", `${pos.x} ${pos.y} ${pos.z}`);
+                el.setAttribute("radius", "0.3");
+                el.setAttribute("color", "red");
+
+                el.addEventListener("click", () => loadScene(h.target));
+
+                container.appendChild(el);
+            });
+
+        }
+
+        loadData();
+
+    </script>
+
+</body>
+
+</html>
